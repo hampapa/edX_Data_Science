@@ -60,8 +60,11 @@ c_df <- function(y_sl=1, y_sd=1){
     return(data.frame(x=x, y=y))
 }
 
-df1 <- c_df()
+y_sd <- 1.5
+df1 <- c_df(y_sd=y_sd)
+rho_label <- round(cor(df1$x,df1$y), digits=2)
 df1 %>% ggplot(aes(x=x,y=y)) +
     geom_point(alpha=0.5) +
+    ggtitle(label=rho_label) +
     theme_bw()
-df1 %>% summarize(cor(x,y))
+cor(df1$x,df1$y)
