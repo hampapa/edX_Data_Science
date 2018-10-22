@@ -49,3 +49,19 @@ galton_heights %>%
     geom_point(alpha=0.5) +
     theme_bw()
 
+### Correlation with different parameter values
+library(tidyverse)
+
+c_df <- function(y_sl=1, y_sd=1){
+    x <- rnorm(n=1000,mean=0,sd=2)
+    y_base <- y_sl*x
+    error <- rnorm(n=length(y_base), mean=0, sd=y_sd)
+    y <- y_base + error
+    return(data.frame(x=x, y=y))
+}
+
+df1 <- c_df()
+df1 %>% ggplot(aes(x=x,y=y)) +
+    geom_point(alpha=0.5) +
+    theme_bw()
+df1 %>% summarize(cor(x,y))
