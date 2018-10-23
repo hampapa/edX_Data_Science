@@ -49,7 +49,7 @@ galton_heights %>%
     geom_point(alpha=0.5) +
     theme_bw()
 
-### Correlation with different parameter values
+### Correlation
 library(tidyverse)
 
 c_df <- function(y_sl=1, y_sd=1){   ## create data frame of random data
@@ -75,9 +75,40 @@ cor_xy <- cov_xy/(sd_x*sd_y)
 cor_xy
 cor(x,y)
 
-rho_label <- round(cor(df1$x,df1$y), digits=2)
-df1 %>% ggplot(aes(x=x,y=y)) +
+### comparing scatter plots with different parameters
+y_sl <- 1
+y_sd <- 1.5
+df1 <- c_df(y_sl=y_sl, y_sd=y_sd)
+rho <- cor(df1$x,df1$y)
+p1 <- df1 %>% ggplot(aes(x=x,y=y)) +
     geom_point(alpha=0.5) +
-    ggtitle(label=rho_label) +
+    ggtitle(label=sprintf("Cor: %.2f, y_sl: %.1f, y_sd: %.1f",
+                          rho, y_sl, y_sd)) +
+    coord_fixed(xlim=c(-10,10),ylim=c(-10,10)) +
     theme_bw()
-cor(df1$x,df1$y)
+
+y_sl <- 0.5
+y_sd <- 1.5
+df2 <- c_df(y_sl=y_sl, y_sd=y_sd)
+rho <- cor(df2$x,df2$y)
+p2 <- df2 %>% ggplot(aes(x=x,y=y)) +
+    geom_point(alpha=0.5) +
+    ggtitle(label=sprintf("Cor: %.2f, y_sl: %.1f, y_sd: %.1f",
+                          rho, y_sl, y_sd)) +
+    coord_fixed(xlim=c(-10,10),ylim=c(-10,10)) +
+    theme_bw()
+
+y_sl <- 0.01
+y_sd <- 1.5
+df3 <- c_df(y_sl=y_sl, y_sd=y_sd)
+rho <- cor(df3$x,df3$y)
+p3 <- df3 %>% ggplot(aes(x=x,y=y)) +
+    geom_point(alpha=0.5) +
+    ggtitle(label=sprintf("Cor: %.2f, y_sl: %.1f, y_sd: %.1f",
+                          rho, y_sl, y_sd)) +
+    coord_fixed(xlim=c(-10,10),ylim=c(-10,10)) +
+    theme_bw()
+
+gridExtra::grid.arrange(p1, p2, p3, ncol=2)
+
+
