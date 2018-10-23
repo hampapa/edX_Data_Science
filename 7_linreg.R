@@ -52,16 +52,29 @@ galton_heights %>%
 ### Correlation with different parameter values
 library(tidyverse)
 
-c_df <- function(y_sl=1, y_sd=1){
-    x <- rnorm(n=1000,mean=0,sd=2)
+c_df <- function(y_sl=1, y_sd=1){   ## create data frame of random data
+    x <- rnorm(n=2000,mean=0,sd=2)
     y_base <- y_sl*x
     error <- rnorm(n=length(y_base), mean=0, sd=y_sd)
     y <- y_base + error
     return(data.frame(x=x, y=y))
 }
 
+### manually calculating mean, std.dev, covariance, correlation
 y_sd <- 1.5
 df1 <- c_df(y_sd=y_sd)
+n <- length(df1$x)
+x <- df1$x
+y <- df1$y
+mean_x <- sum(x)/n
+mean_y <- sum(y)/n
+sd_x <- sqrt((1/(n-1))*sum((x-mean_x)^2))     ## sample std. dev.
+sd_y <- sqrt((1/(n-1))*sum((y-mean_y)^2))
+cov_xy <- 1/(n-1)*sum((x-mean_x)*(y-mean_y))  ## sample cov
+cor_xy <- cov_xy/(sd_x*sd_y)
+cor_xy
+cor(x,y)
+
 rho_label <- round(cor(df1$x,df1$y), digits=2)
 df1 %>% ggplot(aes(x=x,y=y)) +
     geom_point(alpha=0.5) +
