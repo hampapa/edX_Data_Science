@@ -191,7 +191,7 @@ galton_heights %>%
     geom_point() +
     geom_abline(intercept=0, slope=r)
 
-### regression line
+### regression line for E(Y|X=x)
 gh <- galton_heights
 mu_x <- mean(gh$father)
 mu_y <- mean(gh$son)
@@ -209,3 +209,12 @@ gh %>% ggplot(aes(scale(father),scale(son))) +
     geom_point(alpha=0.5) +
     geom_abline(intercept=0, slope=r)
 
+
+
+### Bivariate Normal Distribution
+gh %>%
+    mutate(z_father = round((father-mean(father))/sd(father))) %>%
+    filter(z_father %in% -2:2) %>%
+    ggplot() +
+    stat_qq(aes(sample=son)) +
+    facet_wrap(~z_father)
