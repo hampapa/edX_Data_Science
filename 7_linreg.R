@@ -218,3 +218,130 @@ gh %>%
     ggplot() +
     stat_qq(aes(sample=son)) +
     facet_wrap(~z_father)
+
+
+
+### Linear Models, Least Squares Estimates (LSE)
+gh <- galton_heights
+rss <- function(beta0, beta1, data){
+    resid <- gh$son - (beta0 + beta1*gh$father)
+    return(sum(resid^2))
+}
+### would be 3D plot, but keep beta0 fixed at 25 -> 2D plot: RSS as
+### function of beta1
+beta1 <- seq(0,1,len=nrow(gh))
+results <- data.frame(beta1 = beta1,
+                      rss = sapply(beta1, rss, beta0=36))
+results %>% ggplot(aes(x=beta1,y=rss)) +
+    geom_line() +
+    geom_line(aes(x=beta1,y=rss), col=2)
+
+### lm() function
+fit <- lm(son ~ father, data=gh)
+summary(fit)
+
+bb_dat <-  Teams %>% filter(yearID %in% 1961:2001) %>%
+    mutate(BB=BB/G, R=R/G, HR=HR/G)
+baseball <- lm(R ~ BB + HR, data=bb_dat)
+
+
+
+### LSE are random variables
+B <- 1000
+N <- 50
+lse <- replicate(B, {
+    sample_n(gh, N, replace=TRUE) %>%
+        lm(son ~ father, data=.) %>% .$coef
+})
+lse <- data.frame(beta_0 = lse[1,], beta_1 = lse[2,])
+p1 <- lse %>% ggplot(aes(beta_0)) + geom_histogram(binwidth=5, color="black")
+p2 <- lse %>% ggplot(aes(beta_1)) + geom_histogram(binwidth=0.1, color="black")
+gridExtra::grid.arrange(p1,p2,ncol=2)
+
+sample_n(gh, N, replace=TRUE) %>%
+    lm(son ~ father, data=.) %>% summary
+lse %>% summarize(se_0=sd(beta_0), se_1=sd(beta_1))
+
+lse %>% summarize(cor(beta_0, beta_1))
+### correlation if predictor gets centralized
+lse <- replicate(B, {
+    sample_n(gh, N, replace=TRUE) %>%
+        mutate(father = father - mean(father)) %>%
+        lm(son ~ father, data=.) %>% .$coef
+})
+cor(lse[1,], lse[2,])
+
+gh %>% ggplot(aes(x=father, y=son)) +
+    geom_point() +
+    geom_smooth(method="lm")
+
+gh %>%
+    mutate(Y_hat = predict(lm(son~father, data=.))) %>%
+    ggplot(aes(x=father, y=Y_hat)) +
+    geom_line()
+
+fit <- gh %>% lm(son ~ father, data=.)
+Y_hat <- predict(fit, se.fit=TRUE)
+names(Y_hat)
+
+
+
+### Advanced dplyr: Tibbles
+library(tidyverse)
+library(Lahman)
+data(Teams)
+
+dat <- Teams %>% filter(yearID %in% 1961:2001) %>%
+    mutate(HR=round(HR/G, 1),
+           BB=BB/G,
+           R=R/G) %>%
+    select(HR, BB, R) %>%
+    filter(HR >= 0.4 & HR <= 1.2)
+
+dat %>% group_by(HR) %>%
+    summarize(slope=cor(R,BB)*sd(R)/sd(BB))
+### lm() ignores group_by()
+dat %>% group_by(HR) %>%
+    lm(R ~ BB, data=.) %>%
+    .$coef
+
+### Tibbles
+dat %>% group_by(HR) %>% head()
+dat %>% group_by(HR) %>% class()
+
+tibble(id=c(1,2,3), func = c(mean, median, sd))
+
+dat %>% group_by(HR) %>%
+    do(fit = lm(R ~ BB, data=.))
+
+get_slope <- function(data){
+    fit <- lm(R ~ BB, data=data)
+    data.frame(slope=fit$coefficients[2],
+               se=summary(fit)$coefficient[2,2])
+}
+dat %>% group_by(HR) %>%
+    do(get_slope(.))
+
+dat %>% group_by(HR) %>%
+    do(slope = get_slope(.)) ## get a data frame
+
+get_lse <- function(data){
+    fit <- lm(R ~ BB, data=data)
+    data.frame(term=names(fit$coefficients),
+               slope=fit$coefficients,
+               se=summary(fit)$coefficient[,2])
+}
+dat %>% group_by(HR) %>%
+    do(get_lse(.))
+
+get_slope <- function(data) {
+  fit <- lm(R ~ BB, data = data)
+  sum.fit <- summary(fit)
+
+  data.frame(slope = sum.fit$coefficients[2, "Estimate"], 
+             se = sum.fit$coefficients[2, "Std. Error"],
+             pvalue = sum.fit$coefficients[2, "Pr(>|t|)"])
+}
+dat %>% 
+  group_by(HR) %>% 
+  do(get_slope(.))
