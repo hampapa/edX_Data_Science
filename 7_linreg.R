@@ -345,3 +345,71 @@ get_slope <- function(data) {
 dat %>% 
   group_by(HR) %>% 
   do(get_slope(.))
+
+
+
+### broom
+library(broom)
+library(tidyverse)
+library(Lahman)
+data(Teams)
+
+dat <- Teams %>% filter(yearID %in% 1961:2001) %>%
+    mutate(HR=round(HR/G, 1),
+           BB=BB/G,
+           R=R/G) %>%
+    select(HR, BB, R) %>%
+    filter(HR >= 0.4 & HR <= 1.2)
+
+fit <- lm(R ~ BB, data=dat)
+tidy(fit, conf.int=TRUE)
+names(tidy(fit))
+class(tidy(fit))
+tidy(fit)$estimate
+### because the outcome is a data frame we can immediately use it with do
+dat %>%
+    group_by(HR) %>%
+    do(tidy(lm(R~BB,data=.), conf.int=TRUE))
+
+dat %>%
+    group_by(HR) %>%
+    do(tidy(lm(R~BB,data=.), conf.int=TRUE)) %>%
+    filter(term == "BB") %>%
+    select(HR, estimate, conf.low, conf.high) %>%
+    ggplot(aes(HR, y=estimate, ymin=conf.low, ymax=conf.high)) +
+    geom_errorbar() +
+    geom_point()
+
+glance(fit)
+
+### Question
+dat <- Teams %>% filter(yearID %in% 1961:2001) %>%
+    mutate(HR = HR/G,
+           R = R/G) %>%
+    select(lgID, HR, BB, R)
+
+dat %>% 
+    group_by(lgID) %>% 
+    do(tidy(lm(R ~ HR, data = .), conf.int = T)) %>% 
+    filter(term == "HR")
+
+
+### Building a better offensive model for baseball
+fit <- Teams %>%
+    filter(yearID %in% 1961:2001) %>%
+    mutate(HR=HR/G,
+           BB=BB/G,
+           R=R/G) %>%
+    lm(R ~ BB + HR, data=.)
+tidy(fit, conf.int=TRUE)
+
+fit <- Teams %>%
+    filter(yearID %in% 1961:2001) %>%
+    mutate(HR=HR/G,
+           singles=(H-X2B-X3B-HR)/G,
+           doubles=X2B/G,
+           triples=X3B/G,
+           BB=BB/G,
+           R=R/G) %>%
+    lm(R ~ BB + singles + doubles + triples + HR, data=.)
+tidy(fit, conf.int=TRUE)
