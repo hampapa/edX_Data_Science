@@ -576,3 +576,60 @@ sim_data %>% filter(group == res$group[which.max(res$r)]) %>%
 pres <- sim_data %>%
     group_by(group) %>%
     do(tidy(lm(Y ~ X, data=.))[2,5]) 
+
+
+
+### Outliers
+library(tidyverse)
+set.seed(1)
+x <- rnorm(100,100,1)
+y <- rnorm(100,84,1)
+x[-23] <- scale(x[-23])
+y[-23] <- scale(y[-23])
+x_23 <- x[-23]
+y_23 <- y[-23]
+
+tibble(x,y) %>% ggplot(aes(x,y)) + geom_point(alpha=0.5)
+tibble(x_23,y_23) %>% ggplot(aes(x_23,y_23)) + geom_point(alpha=0.5)
+cor(x,y)
+cor(x[-23],y[-23])
+
+tibble(x,y) %>% 
+    ggplot(aes(rank(x),rank(y))) + 
+    geom_point(alpha = 0.5)
+cor(rank(x),rank(y))
+cor(rank(x[-23]), rank(y[-23]))
+
+
+
+### confounders
+library(tidyverse)
+library(broom)
+library(dslabs)
+data(admissions)
+
+admissions %>%
+    group_by(gender) %>%
+    summarize(percentage =
+                  round(sum(admitted*applicants)/sum(applicants),1))
+
+admissions %>% group_by(gender) %>% 
+    summarize(total_admitted = round(sum(admitted/100*applicants)), 
+              not_admitted = sum(applicants) - sum(total_admitted)) %>%
+    select(-gender) %>% 
+    do(broom::tidy(chisq.test(.)))
+
+admissions %>% select(major, gender, admitted) %>%
+    spread(gender, admitted) %>%
+    mutate(women_minus_men = women - men)
+
+admissions %>% 
+    group_by(major) %>% 
+    summarize(major_selectivity =
+                  sum(admitted*applicants)/sum(applicants),
+              percent_women_applicants =
+                  sum(applicants*(gender=="women")/sum(applicants))*100) %>%
+    ggplot(aes(major_selectivity,
+               percent_women_applicants,
+               label = major)) +
+    geom_text()
