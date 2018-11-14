@@ -13,6 +13,7 @@ test_index <- createDataPartition(y, times=1, p=0.5, list=FALSE)
 test_set <- heights[test_index, ]
 train_set <- heights[-test_index, ]
 
+### algorithm: guessing
 y_hat <- sample(c("Male","Female"), length(test_index), replace=TRUE) %>%
     factor(levels=levels(test_set$sex))
 
@@ -33,6 +34,7 @@ y_hat <- ifelse(test_set$height > 62, "Male", "Female") %>%
     factor(levels=levels(test_set$sex))
 mean(y_hat == test_set$sex)
 
+### finding the parameter for cutoff that maximizes accuracy
 cutoff <- seq(61,70)
 accuracy <- map_dbl(cutoff, function(x){
     y_hat <- ifelse(train_set$height > x, "Male", "Female") %>%
@@ -60,6 +62,7 @@ test_set %>%
     group_by(sex) %>%
     summarize(accuracy = mean(y_hat == sex))
 
+### check the prevalence of category "Male"
 sum(y == "Male")/sum(y %in% c("Male","Female"))
 
 y_hat <- ifelse(test_set$height > 64, "Male", "Female") %>%
@@ -67,14 +70,14 @@ y_hat <- ifelse(test_set$height > 64, "Male", "Female") %>%
 mean(y_hat == test_set$sex)
 table(predicted=y_hat, actual=test_set$sex)
 
-caret::confusionMatrix(data=y_hat, reference=test_set$sex)
+caret::confusionMatrix(data=y_hat, reference=test_set$sex, positive="Male")
 
 ### maximize F-score
 cutoff <- seq(61,70)
 F_1 <- map_dbl(cutoff, function(x){
-    y_hat <- ifelse(test_set$height > x, "Male", "Female") %>%
-        factor(levels=levels(test_set$sex))
-    F_meas(data=y_hat,reference=test_set$sex)
+    y_hat <- ifelse(train_set$height > x, "Male", "Female") %>%
+        factor(levels=levels(train_set$sex))
+    F_meas(data=y_hat,reference=factor(train_set$sex))
 })
 data.frame(cutoff=cutoff, F_1=F_1) %>%
     ggplot(aes(cutoff,F_1)) +
