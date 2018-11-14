@@ -90,7 +90,12 @@ y_hat <-
     factor(levels=levels(test_set$sex))
 caret::confusionMatrix(data=y_hat, reference=test_set$sex)
 
-p <- 0.9
+### guessing with higher probabilities
+y_hat <- sample(c("Male","Female"), length(test_index), replace=TRUE) %>%
+    factor(levels=levels(test_set$sex))
+caret::confusionMatrix(data=y_hat, reference=test_set$sex)
+
+p <- 0.4444444444
 y_hat <- sample(c("Male","Female"),
                 length(test_index),
                 replace=TRUE,
@@ -98,6 +103,7 @@ y_hat <- sample(c("Male","Female"),
     factor(levels=levels(test_set$sex))
 mean(y_hat == test_set$sex)
 caret::confusionMatrix(data=y_hat, reference=test_set$sex)
+
 
 probs <- seq(0, 1, length.out = 10)
 guessing <- map_df(probs, function(p){
@@ -110,4 +116,7 @@ guessing <- map_df(probs, function(p){
          TPR = sensitivity(y_hat, test_set$sex))
 })
 guessing %>%
-    qplot(FPR, TPR, data =., xlab = "1 - Specificity", ylab = "Sensitivity")
+    ggplot(aes(FPR, TPR)) +
+    geom_point() +
+    geom_abline() +
+    theme_bw()
