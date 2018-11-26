@@ -95,7 +95,7 @@ y_hat <- sample(c("Male","Female"), length(test_index), replace=TRUE) %>%
     factor(levels=levels(test_set$sex))
 caret::confusionMatrix(data=y_hat, reference=test_set$sex)
 
-p <- 0.4444444444
+p <- 0.0
 y_hat <- sample(c("Male","Female"),
                 length(test_index),
                 replace=TRUE,
@@ -113,10 +113,77 @@ guessing <- map_df(probs, function(p){
         factor(levels = c("Female", "Male"))
     list(method = "Guessing",
          FPR = 1 - specificity(y_hat, test_set$sex),
+         TPR = sensitivity(y_hat, test_set$sex),
+         idx = p)
+})
+
+guessing %>%
+    ggplot(aes(FPR, TPR, label=sprintf("%.2f",idx))) +
+    geom_abline(color="grey") +
+    geom_point() +
+    geom_text(nudge_x = 0.08) +
+    theme_bw()
+
+
+cutoffs <- c(50, seq(60, 75), 80)
+height_cutoff <- map_df(cutoffs, function(x){
+    y_hat <- ifelse(test_set$height > x, "Male", "Female") %>% 
+        factor(levels = c("Female", "Male"))
+    list(method = "Height cutoff",
+         FPR = 1-specificity(y_hat, test_set$sex),
          TPR = sensitivity(y_hat, test_set$sex))
 })
-guessing %>%
-    ggplot(aes(FPR, TPR)) +
+
+bind_rows(guessing, height_cutoff) %>%
+    ggplot(aes(FPR, TPR, color = method)) +
+    geom_line() +
     geom_point() +
-    geom_abline() +
-    theme_bw()
+    xlab("1 - Specificity") +
+    ylab("Sensitivity")
+
+### ROC curves have one weakness and it is that neither of
+### the measures plotted depend on prevalence.
+guessing <- map_df(probs, function(p){
+    y_hat <- sample(c("Male", "Female"), length(test_index), 
+                    replace = TRUE, prob=c(p, 1-p)) %>% 
+        factor(levels = c("Female", "Male"))
+    list(method = "Guess",
+         recall = sensitivity(y_hat, test_set$sex),
+         precision = precision(y_hat, test_set$sex))
+})
+
+height_cutoff <- map_df(cutoffs, function(x){
+    y_hat <- ifelse(test_set$height > x, "Male", "Female") %>% 
+        factor(levels = c("Female", "Male"))
+    list(method = "Height cutoff",
+         recall = sensitivity(y_hat, test_set$sex),
+         precision = precision(y_hat, test_set$sex))
+})
+bind_rows(guessing, height_cutoff) %>%
+    ggplot(aes(recall, precision, color = method)) +
+    geom_line() +
+    geom_point()
+
+### If we change positives to mean Male instead of Female, the
+### ROC curve remains the same, but the precision recall plot changes
+guessing <- map_df(probs, function(p){
+    y_hat <- sample(c("Male", "Female"), length(test_index), replace = TRUE, 
+                    prob=c(p, 1-p)) %>% 
+        factor(levels = c("Male", "Female"))
+    list(method = "Guess",
+         recall = sensitivity(y_hat, relevel(test_set$sex, "Male", "Female")),
+         precision = precision(y_hat, relevel(test_set$sex, "Male", "Female")))
+})
+
+height_cutoff <- map_df(cutoffs, function(x){
+    y_hat <- ifelse(test_set$height > x, "Male", "Female") %>% 
+        factor(levels = c("Male", "Female"))
+    list(method = "Height cutoff",
+         recall = sensitivity(y_hat, relevel(test_set$sex, "Male", "Female")),
+         precision = precision(y_hat, relevel(test_set$sex, "Male", "Female")))
+})
+bind_rows(guessing, height_cutoff) %>%
+    ggplot(aes(recall, precision, color = method)) +
+    geom_line() +
+    geom_point()
+
