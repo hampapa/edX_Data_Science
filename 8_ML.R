@@ -187,3 +187,25 @@ bind_rows(guessing, height_cutoff) %>%
     geom_line() +
     geom_point()
 
+
+
+###
+### Logistic Regression
+###
+
+library(tidyverse)
+library(HistData)
+library(caret)
+
+gh <- GaltonFamilies %>%
+    filter(childNum == 1 & gender == "male") %>%
+    select(father, childHeight) %>%
+    rename(son = childHeight)
+
+### predict son's height Y using fathers height X
+y <- gh$son
+test_index <- createDataPartition(y, times = 1, p = 0.5, list=FALSE)
+
+train_set <- gh %>% slice(-test_index)
+test_set <- gh %>% slice(test_index)
+
