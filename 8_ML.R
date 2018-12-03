@@ -209,3 +209,89 @@ test_index <- createDataPartition(y, times = 1, p = 0.5, list=FALSE)
 train_set <- gh %>% slice(-test_index)
 test_set <- gh %>% slice(test_index)
 
+train_set %>% ggplot(aes(x=father, y=son)) +
+    geom_point() +
+    theme_bw()
+
+Y_hat <- mean(train_set$son)
+### Mean Squared Error => using the test set to evaluate
+MSE <- mean((Y_hat - test_set$son)^2)
+
+fit <- lm(son ~ father, data=train_set)
+Y_hat <- fit$coef[1] + fit$coef[2]*test_set$father
+MSE <- mean((Y_hat - test_set$son)^2)
+MSE
+
+Y_hat <- predict(fit, test_set)
+MSE <- mean((Y_hat - test_set$son)^2)
+MSE
+
+### Exercises
+
+Sigma <- 9*matrix(c(1.0, 0.95, 0.95, 1.0), 2, 2)
+dat <- MASS::mvrnorm(n = 100, c(69, 69), Sigma) %>%
+    data.frame() %>% setNames(c("x", "y"))
+dat %>% ggplot(aes(x,y)) +
+    geom_point() +
+    theme_bw()
+
+###
+Sigma <- 9*matrix(c(1.0, 0.5, 0.5, 1.0), 2, 2)
+RMSE <- replicate(500, {
+    dat <- MASS::mvrnorm(n = 1000, c(69, 69), Sigma) %>%
+        data.frame() %>% setNames(c("x", "y"))
+    test_index <- createDataPartition(dat$y, times=1, p=0.5, list=FALSE) 
+    test_set <- dat %>% slice(test_index)
+    train_set <- dat %>% slice(-test_index)
+    fit <- lm(y ~ x, data=train_set)
+    Y_hat <- predict(fit, test_set)
+    sqrt(mean((Y_hat - test_set$y)^2))
+}) %>% data.frame() %>% setNames("RMSE")
+RMSE %>% summarize(mean=mean(RMSE), sd=sd(RMSE))
+
+RMSE %>% ggplot(aes(x=RMSE)) +
+    geom_histogram(binwidth=0.005)
+
+###
+Sigma <- 9*matrix(c(1.0, 0.5, 0.5, 1.0), 2, 2)
+B <- 100
+n_size <- c(100, 500, 1000, 5000, 10000)
+mean_sd <- map_df(n_size, function(n){
+    replicate(B, {
+        dat <- MASS::mvrnorm(n = n, c(69, 69), Sigma) %>%
+            data.frame() %>% setNames(c("x", "y"))
+        test_index <- createDataPartition(dat$x, times=1, p=0.5, list=FALSE) 
+        test_set <- dat %>% slice(test_index)
+        train_set <- dat %>% slice(-test_index)
+        fit <- lm(y ~ x, data=train_set)
+        Y_hat <- predict(fit, test_set)
+        sqrt(mean((Y_hat - test_set$y)^2))  # Loss function
+    }) %>% data.frame() %>% setNames("RMSE") %>%
+        summarize(n=n, mean=mean(RMSE), sd=sd(RMSE))
+})
+mean_sd
+
+###
+Sigma <- 9*matrix(c(1.0, 0.95, 0.95, 1.0), 2, 2)
+RMSE <- replicate(500, {
+    dat <- MASS::mvrnorm(n = 1000, c(69, 69), Sigma) %>%
+        data.frame() %>% setNames(c("x", "y"))
+    test_index <- createDataPartition(dat$y, times=1, p=0.5, list=FALSE) 
+    test_set <- dat %>% slice(test_index)
+    train_set <- dat %>% slice(-test_index)
+    fit <- lm(y ~ x, data=train_set)
+    Y_hat <- predict(fit, test_set)
+    sqrt(mean((Y_hat - test_set$y)^2))
+}) %>% data.frame() %>% setNames("RMSE")
+RMSE %>% summarize(mean=mean(RMSE), sd=sd(RMSE))
+
+RMSE %>% ggplot(aes(x=RMSE)) +
+    geom_histogram(binwidth=0.005)
+
+### 6.
+n <- 1000
+Sigma <- matrix(c(1.0, 0.75, 0.75, 0.75, 1.0, 0, 0.75, 0, 1.0), 3, 3)
+dat <- MASS::mvrnorm(n = n, c(0, 0, 0), Sigma) %>%
+    data.frame() %>% setNames(c("y", "x_1", "x_2"))
+
+
